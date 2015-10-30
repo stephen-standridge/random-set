@@ -78,5 +78,5 @@ class Possibility {
     }
 }
 
-module.exports = DeterministicProbability
+module.exports = randomSet
  
