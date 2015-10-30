@@ -1,14 +1,16 @@
+'use strict'
 var Tree = require('basic-tree')
 
 class randomSet extends Tree {
-    constructor( tries=0, spread=false ){
+    constructor( tries, spread ){
         super();
-        this._maxTries = tries;
+        this._maxTries = tries || 0;
         this._spread = this.checkSpread( spread );
         this._decisions = this._spread.length;
         this.createPossibilities()    
     }
     checkSpread( spread ){
+        spread = spread || false;
         if( Array.isArray( spread ) ){
             return spread
         }
