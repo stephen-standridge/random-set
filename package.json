@@ -1,0 +1,18 @@
+{
+  "name": "random-set",
+  "version": "1.0.0",
+  "description": "a random number generator",
+  "main": "index.js",
+  "repository": {
+  	"type": "git",
+  	"url": "https://github.com/stephen-standridge/random-set"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Stephen Standridge <Stephen@formisfunction.io> (www.formisfunction.io)",
+  "license": "ISC",
+  "dependencies": {
+    "basic-tree": "^1.0.0"
+  }
+}
