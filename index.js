@@ -1,16 +1,18 @@
 'use strict'
 var Tree = require('basic-tree')
-
-// what if tries is larger than spread //
 // build deterministic probability // 
 class randomSet extends Tree {
     constructor( tries, spread ){
         super();
         this._maxTries = tries || 0;
+        this._tried = 0;
         this._initialSpread = spread;
-        this._spread = this.checkSpread( spread );
+        this.initialize()
+    }
+    initialize(){
+        this._spread = this.checkSpread( this._initialSpread );
         this._decisions = this._spread.length;
-        this.createPossibilities()    
+        this.createPossibilities()  
     }
     checkSpread( spread ){
         spread = spread || false;
@@ -35,6 +37,11 @@ class randomSet extends Tree {
     determine(){
         let index = this.root.choosePossibility();
         let value = this.toNth( index ).determine();
+        this._tried ++
+        if( this._tried == this._maxTries ){
+            this.initialize()
+            this._tried = 0;
+        }
         this.parent
         return value
     }
@@ -47,7 +54,6 @@ class randomSet extends Tree {
 
 class Probability {
     constructor( set ){
-        this._tries = set._maxTries;
         this._decisions = set._spread;
         this._value = set._spread;
         this.initialize()
@@ -64,8 +70,8 @@ class Probability {
         }
     }
     chooseValue(){
-        let seed = Math.floor(Math.random() * ( this._decisions.length ));
-        let value = this._decisions.splice( seed, 1 )[0];
+        // let seed = Math.floor(Math.random() * ( this._decisions.length ));
+        let value = this._decisions.splice( 0, 1 )[0];
         return value
     }
     
