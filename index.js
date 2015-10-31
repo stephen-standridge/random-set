@@ -123,13 +123,14 @@ class variedRatio extends randomSet{
             newSpread = [],
             variations = [],
             seed = 0,
-            actualVariation = 0;
+            actualVariation = 0,
+            adjVariation = (whole * (maxVariation /100) );
 
 
         // generate inital (even) spread and initial variations/
         for( let i = 0; i<this._maxTries; i++ ){
             let seed = Number( 
-                (Math.random() * (maxVariation + maxVariation)) - maxVariation 
+                (Math.random() * (adjVariation + adjVariation)) - adjVariation 
                 .toFixed(0));
             actualVariation = Number( (part + seed).toFixed(0) );
             variations.push(actualVariation)
@@ -140,15 +141,17 @@ class variedRatio extends randomSet{
         actualVariation = variations.reduce(function(a, b){
             return a + b 
         })
-        seed = ((maxVariation - actualVariation)-maxVariation) / this._maxTries;
+        seed = ((adjVariation - actualVariation)-adjVariation) / this._maxTries;
         newSpread = variations.map(function(variation, index){
-            return Number( (newSpread[index] + (variation + seed)).toFixed(0) )
+            return Math.abs( Number( (newSpread[index] + (variation + seed)).toFixed(0) ) )
         })
 
         //resolve the variation to whole numbers//
         seed = whole - newSpread.reduce(function(a, b){ return a+b});
-        newSpread[0] = newSpread[0] + seed;
-
+        newSpread = newSpread.map(function(num){
+            return num + (seed / this._maxTries);
+        }, this);
+        console.log(newSpread)
         return newSpread
     }
     createUniformSpread( num ){
