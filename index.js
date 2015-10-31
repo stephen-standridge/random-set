@@ -1,5 +1,6 @@
 'use strict'
 var Tree = require('basic-tree')
+
 // build deterministic probability // 
 class randomSet extends Tree {
     constructor( tries, spread ){
@@ -35,15 +36,28 @@ class randomSet extends Tree {
         this.root
     }
     determine(){
-        let index = this.root.choosePossibility();
-        let value = this.toNth( index ).determine();
-        this._tried ++
         if( this._tried == this._maxTries ){
             this.initialize()
             this._tried = 0;
-        }
+        }        
+        let index = this.root.choosePossibility();
+        let value = this.toNth( index ).determine();
+        this._tried ++
         this.parent
         return value
+    }
+    determineAll(){
+        if( this._tried == this._maxTries ){
+            this.initialize()
+            this._tried = 0;
+        }        
+        for( let i = 0; i< this._maxTries; i++ ){
+            let index = this.root.choosePossibility();
+            let value = this.toNth( index ).determine();
+            this._tried ++
+            this.parent
+        }
+        return this.actual                    
     }
     get actual(){
         return this.children.map(function(child){ 
