@@ -223,6 +223,14 @@ class variedRatio extends randomSet{
         }
         return newSpread
     }
+    roundNumTo(num, to) {
+        var resto = num%to;
+        if (resto <= (to/2)) { 
+            return num-resto;
+        } else {
+            return num+to-resto;
+        }
+    }    
 }
 module.exports.randomSet = randomSet
 module.exports.ratio = variedRatio
