@@ -1,7 +1,6 @@
 'use strict'
 var Tree = require('basic-tree')
 
-// build deterministic probability // 
 class randomSet extends Tree {
     constructor( tries, spread ){
         super();
@@ -107,6 +106,9 @@ class variedRatio extends randomSet{
     checkSpread( spread ){
         spread = spread || {};
         if( spread.total && !isNaN( Number(spread.total) ) && spread.variation ){
+            if(spread.round){
+                return this.createRoundedSpread( spread );                
+            }
             return this.createVariedSpread( spread );
         } else if ( !isNaN( Number( spread )) ){
             return this.createUniformSpread( spread );
@@ -151,9 +153,55 @@ class variedRatio extends randomSet{
         newSpread = newSpread.map(function(num){
             return num + (seed / this._maxTries);
         }, this);
-        console.log(newSpread)
         return newSpread
     }
+    createRoundedSpread( spread ){
+
+
+        let maxVariation = spread.variation,
+            whole = spread.total,
+            round = spread.round || 0,            
+            part = this.roundNumTo(spread.total / this._maxTries, round),
+            newSpread = [],
+            variations = [],
+            seed = 0,
+            actualVariation = 0,
+            adjVariation = (whole * (maxVariation /100) ), count;
+
+
+        // generate inital (even) spread and initial variations/
+        for( let i = 0; i<this._maxTries; i++ ){
+            let seed = this.roundNumTo( Number( 
+                (Math.random() * (adjVariation + adjVariation)) - adjVariation 
+                .toFixed(0)), round);
+            actualVariation = Number( (part + seed).toFixed(0) );
+            variations.push(actualVariation)
+            newSpread.push(part)
+        }
+
+        // average out the variation so it's close to the whole number //
+        actualVariation = variations.reduce(function(a, b){
+            return a + b 
+        })
+        seed = ((adjVariation - actualVariation)-adjVariation) / this._maxTries;
+        actualVariation = 0;
+        newSpread = variations.map(function(variation, index){
+            let wholePos = Math.abs( Number( (newSpread[index] + (variation + seed)).toFixed(0) ) )            
+            actualVariation += wholePos
+            return wholePos
+        })
+        seed = whole - actualVariation;
+        count = Math.ceil(seed/round)
+        for(let i = 0; i< newSpread.length; i++ ){
+            var dist = Math.min( seed, 15)
+            if( dist > 0 && newSpread[i] + dist > 0 ){
+                newSpread[i] = newSpread[i] + dist;
+            }
+            seed -= dist;
+        }
+
+        return newSpread
+    }    
     createUniformSpread( num ){
         let part = num / this._maxTries,
             newSpread = [];
