@@ -156,52 +156,35 @@ class variedRatio extends randomSet{
         return newSpread
     }
     createRoundedSpread( spread ){
-
-
         let maxVariation = spread.variation,
             round = spread.round,         
             excess = spread.total % round,
             whole = spread.total - excess,
             part = this.roundNumTo(spread.total / this._maxTries, round),
             newSpread = [],
-            variations = [],
             seed = 0,
             actualVariation = 0,
             adjVariation = (whole * (maxVariation /100) ), count;
-
-            console.log('===============')
-            console.log('vvvvvvvvvvvvvvv')
-            console.log('spread::'+spread.total)
-            console.log('excess::'+excess)
 
         // generate inital (even) spread and initial variations/
         for( let i = 0; i<this._maxTries; i++ ){
             let seed = this.roundNumTo( Number( 
                 (Math.random() * (adjVariation + adjVariation)) - adjVariation 
                 .toFixed(0)), round);
-            console.log('seed::'+seed)
-            console.log('part::'+part)
             let variation = Number( (part + seed).toFixed(0) );
             actualVariation += variation;
-            // variations.push(actualVariation)
             newSpread.push(variation)
         }
-        console.log('variation::'+actualVariation)
-        console.log('whole::'+whole)   
 
         seed = whole - actualVariation + excess;
         let absSeed = Math.abs(seed);
-        console.log('difference::'+seed)
-        //gets fucky when difference is massively negative? 
-        // i.e. when it has to subtract from two spread items perhaps?
+   
         do{         
             for(let i = 0; i< newSpread.length; i++ ){
                 if(absSeed == 0){
                     break;
                 }   
                 let dist = Math.min( Math.max(seed, -15), 15)
-                console.log('part of difference::'+dist)
-                console.log('spread::'+newSpread[i])
                 if( dist !== 0 ){
                     if(newSpread[i] + dist > 0){
                         console.log('1')
@@ -211,10 +194,7 @@ class variedRatio extends randomSet{
                         newSpread[i] = 0;
                     }
                 }
-                console.log('spread::'+newSpread[i])                
                 absSeed -= Math.abs( dist );
-
-                console.log('remainder::'+absSeed)
             }
         }while( absSeed > 0 )
         return newSpread
