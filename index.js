@@ -159,8 +159,9 @@ class variedRatio extends randomSet{
 
 
         let maxVariation = spread.variation,
-            whole = spread.total,
-            round = spread.round || 0,            
+            round = spread.round,         
+            excess = spread.total % round,
+            whole = spread.total - excess,
             part = this.roundNumTo(spread.total / this._maxTries, round),
             newSpread = [],
             variations = [],
@@ -168,38 +169,54 @@ class variedRatio extends randomSet{
             actualVariation = 0,
             adjVariation = (whole * (maxVariation /100) ), count;
 
+            console.log('===============')
+            console.log('vvvvvvvvvvvvvvv')
+            console.log('spread::'+spread.total)
+            console.log('excess::'+excess)
 
         // generate inital (even) spread and initial variations/
         for( let i = 0; i<this._maxTries; i++ ){
             let seed = this.roundNumTo( Number( 
                 (Math.random() * (adjVariation + adjVariation)) - adjVariation 
                 .toFixed(0)), round);
-            actualVariation = Number( (part + seed).toFixed(0) );
-            variations.push(actualVariation)
-            newSpread.push(part)
+            console.log('seed::'+seed)
+            console.log('part::'+part)
+            let variation = Number( (part + seed).toFixed(0) );
+            actualVariation += variation;
+            // variations.push(actualVariation)
+            newSpread.push(variation)
         }
+        console.log('variation::'+actualVariation)
+        console.log('whole::'+whole)   
 
-        // average out the variation so it's close to the whole number //
-        actualVariation = variations.reduce(function(a, b){
-            return a + b 
-        })
-        seed = ((adjVariation - actualVariation)-adjVariation) / this._maxTries;
-        actualVariation = 0;
-        newSpread = variations.map(function(variation, index){
-            let wholePos = Math.abs( Number( (newSpread[index] + (variation + seed)).toFixed(0) ) )            
-            actualVariation += wholePos
-            return wholePos
-        })
-        seed = whole - actualVariation;
-        count = Math.ceil(seed/round)
-        for(let i = 0; i< newSpread.length; i++ ){
-            var dist = Math.min( seed, 15)
-            if( dist > 0 && newSpread[i] + dist > 0 ){
-                newSpread[i] = newSpread[i] + dist;
+        seed = whole - actualVariation + excess;
+        let absSeed = Math.abs(seed);
+        console.log('difference::'+seed)
+        //gets fucky when difference is massively negative? 
+        // i.e. when it has to subtract from two spread items perhaps?
+        do{         
+            for(let i = 0; i< newSpread.length; i++ ){
+                if(absSeed == 0){
+                    break;
+                }   
+                let dist = Math.min( Math.max(seed, -15), 15)
+                console.log('part of difference::'+dist)
+                console.log('spread::'+newSpread[i])
+                if( dist !== 0 ){
+                    if(newSpread[i] + dist > 0){
+                        console.log('1')
+                        newSpread[i] = newSpread[i] + dist;
+                    }else{
+                        console.log('2')                        
+                        newSpread[i] = 0;
+                    }
+                }
+                console.log('spread::'+newSpread[i])                
+                absSeed -= Math.abs( dist );
+
+                console.log('remainder::'+absSeed)
             }
-            seed -= dist;
-        }
-
+        }while( absSeed > 0 )
         return newSpread
     }    
     createUniformSpread( num ){
