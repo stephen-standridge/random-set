@@ -184,7 +184,7 @@ class variedRatio extends randomSet{
                 if(absSeed == 0){
                     break;
                 }   
-                let dist = Math.min( Math.max(seed, -15), 15)
+                let dist = Math.min( Math.max(seed, -Math.abs(round)), Math.abs(round))
                 if( dist !== 0 ){
                     if(newSpread[i] + dist > 0){
                         newSpread[i] = newSpread[i] + dist;
