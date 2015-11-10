@@ -187,10 +187,8 @@ class variedRatio extends randomSet{
                 let dist = Math.min( Math.max(seed, -15), 15)
                 if( dist !== 0 ){
                     if(newSpread[i] + dist > 0){
-                        console.log('1')
                         newSpread[i] = newSpread[i] + dist;
                     }else{
-                        console.log('2')                        
                         newSpread[i] = 0;
                     }
                 }
