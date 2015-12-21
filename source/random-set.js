@@ -1,230 +1,197 @@
-var Tree = require('basic-tree')
+import {Map, List} from 'immutable';
+import Tree from 'basic-tree';
 
 class randomSet extends Tree {
-    constructor( tries, spread ){
-        super();
-        this._maxTries = tries || 0;
-        this._tried = 0;
-        this._initialSpread = spread;
-        this.initialize()
+  constructor(args={}){
+    if(!args.attempts && !args.set && !args.total ){
+      throw new Error('no construction data provided')
     }
-    initialize(){
-        this._spread = this.checkSpread( this._initialSpread );
-        this._decisions = this._spread.length;
-        this.createPossibilities()  
-    }
-    checkSpread( spread ){
-        spread = spread || false;
-        if( Array.isArray( spread ) ){
-            return spread
-        }
-        return this.createSpreadExNihlo();
-    }
-    createSpreadExNihlo(){
-        var newSpread = [];
-        for( let i = 0; i<this._maxTries; i++ ){
-            newSpread.push(i)
-        }
-        return newSpread
-    }
-    createPossibilities(){
-        this.width = this._decisions;
-        this.root = new Probability( this )
-        this.breadthTraversalInitialize( Possibility, this.root, 1 )
-        this.root
-    }
-    determine(){
-        if( this._tried == this._maxTries ){
-            this.initialize()
-            this._tried = 0;
-        }        
-        let index = this.root.choosePossibility();
-        let value = this.toNth( index ).determine();
-        this._tried ++
-        this.parent
-        return value
-    }
-    determineAll(){
-        if( this._tried == this._maxTries ){
-            this.initialize()
-            this._tried = 0;
-        }        
-        for( let i = 0; i< this._maxTries; i++ ){
-            let index = this.root.choosePossibility();
-            let value = this.toNth( index ).determine();
-            this._tried ++
-            this.parent
-        }
-        return this.actual                    
-    }
-    get actual(){
-        return this.children.map(function(child){ 
-                    return child.value 
-                });
-    }    
-}
+    let setSize = args.set && args.set.constructor == Array ? args.set.length : false;
+    let max = setSize ? setSize : args.attempts;
+    super({ config: {branches: max, depth: 1} });
+    this._max = max;
+    this._spread = Map()
+    this._spread = this.setDefaults( this._spread, args )
+    this._spread = this.makeChoices( this._spread )
+  }
+  get attempted(){
+    return this._spread.get('chosen').size
+  }
+  get attempts(){
+    return this._spread.get('attempts')
+  }
+  get max(){
+    return this._max
+  }
+  get chosen(){
+    return this._spread.get('chosen')
+  }
+  setDefaults( spread, args  ){
+    spread = spread.set('attempts', args.attempts)
+    spread = spread.set('originals', List(args.set) )
+    return spread;    
+  }
+  makeChoices( spread ){
+    let originals = this.makeListFrom( spread );
+    this.root = List();
+    this.children = originals;
 
-class Probability {
-    constructor( set ){
-        this._decisions = set._spread;
-        this._value = set._spread;
-        this.initialize()
+    spread = spread.set('possibilities', this.createListExNihlo( this.max ))
+    spread = this.reflect( spread )
+    return spread
+  }
+  reflect( spread ){
+    spread = spread.set( 'chosen', this.root );
+    spread = spread.set( 'choices', this.childrenList ) 
+    return spread  
+  }
+  makeListFrom( spread ){
+    if( spread.get('originals').size ){
+        return spread.get('originals')
     }
-    choosePossibility(){
-        let seed = Math.floor(Math.random() * ( this._unactualized.length ));        
-        let value = this._unactualized.splice( seed, 1 );
-            return value[0];
+    return this.createListExNihlo( spread.get('attempts') );
+  }
+  createListExNihlo( length ){
+    var newSpread = List();
+    for( let i = 0; i< length ; i++ ){
+        newSpread = newSpread.push(i)
     }
-    initialize(){
-        this._unactualized = [];
-        for( let i = 0; i< this._decisions.length; i++ ){
-            this._unactualized.push( i );
-        }
+    return newSpread
+  }
+  determine(){
+    let seed = Math.floor(Math.random() * this._spread.get('possibilities').size ), val;
+    if( this.attempted == this.attempts ){
+      this._spread = this.makeChoices(this._spread)
+    } 
+    val = this.to( this._spread.getIn(['possibilities', seed]) )
+    this._spread = this.reflect( this._spread )
+    return val
+  }
+  removePossibility(spread, index){
+    spread = spread.update('possibilities', (item)=>{
+      return item.filterNot((i)=>{
+        return i === index
+      })
+    })
+    return spread;
+  }
+  toRoot( value ){
+    let chosen = this.root;
+    chosen = chosen.push(value);
+    this.root = chosen
+    return this.root
+  }
+  to( index ){
+    this.toNth( index );
+    let value = this.node;
+    this._spread = this.removePossibility(this._spread, index)
+    this.node = false;
+    this.toRoot(value);
+    return value
+  }
+  determineAll(){
+    if( this.attempted + this.attempts > this.attempts ){
+      this._spread = this.makeChoices(this._spread)
+    }        
+    for( let i = 0; i< this.attempts; i++ ){
+      this.determine();
     }
-    chooseValue(){
-        // let seed = Math.floor(Math.random() * ( this._decisions.length ));
-        let value = this._decisions.splice( 0, 1 )[0];
-        return value
-    }
-    
-}
-class Possibility {
-    constructor( probability ){
-        this.value = false;
-        this._probability = probability;
-    }
-    determine(){
-        this.value = this._probability.chooseValue()
-        return this.value;
-    }
+    return this.root.toJS()                   
+  } 
 }
 class variedRatio extends randomSet{
-    constructor( parts, spread ){
-        super( parts, spread );
+  setDefaults( spread, args ){
+    spread = spread.merge({
+      'attempts': args.attempts,
+      'total': args.total,
+      'variation': args.variation || false,
+      'roundTo': args.round || false
+    })
+    let type = spread.get('variation') ? 'varied' : 'uniform';
+    spread = spread.set('type', type)
+    return spread;    
+  }  
+  makeListFrom( spread ){
+    switch(spread.get('type')){
+      case 'varied':
+        spread = this.createRoundedList( spread ); 
+        break      
+      case 'uniform':
+        spread = this.createUniformList( spread );
+        break    
     }
-    checkSpread( spread ){
-        spread = spread || {};
-        if( spread.total && !isNaN( Number(spread.total) ) && spread.variation ){
-            if(spread.round){
-                return this.createRoundedSpread( spread );                
-            }
-            return this.createVariedSpread( spread );
-        } else if ( !isNaN( Number( spread )) ){
-            return this.createUniformSpread( spread );
-        } else {
-            return this.createSpreadExNihlo( spread );
-        }
+    return spread
+  }
+  createRoundedList( spread ){
+    let maxVariation = spread.get('variation'),
+        round = spread.get('roundTo') || 15,         
+        excess = spread.get('total') % round,
+        whole = spread.get('total') - excess,
+        part = this.roundNumTo(spread.get('total') / this.attempts, round),
+        newSpread = List(),
+        seed = 0,
+        actualVariation = 0,
+        adjVariation = (whole * (maxVariation /100) ), count;
+    // generate inital (even) spread and initial variations/
+    for( let i = 0; i<this.attempts; i++ ){
+        let seed = this.roundNumTo( Number( 
+            (Math.random() * (adjVariation + adjVariation)) - adjVariation 
+            .toFixed(0)), round);
+        let variation = Number( (part + seed).toFixed(0) );
+        actualVariation += variation;
+        newSpread = newSpread.push(variation)
     }
-    createVariedSpread( spread ){
+    seed = whole - actualVariation + excess;
+    let absSeed = Math.abs(seed);
 
-
-        let maxVariation = spread.variation,
-            whole = spread.total,
-            part = spread.total / this._maxTries,
-            newSpread = [],
-            variations = [],
-            seed = 0,
-            actualVariation = 0,
-            adjVariation = (whole * (maxVariation /100) );
-
-
-        // generate inital (even) spread and initial variations/
-        for( let i = 0; i<this._maxTries; i++ ){
-            let seed = Number( 
-                (Math.random() * (adjVariation + adjVariation)) - adjVariation 
-                .toFixed(0));
-            actualVariation = Number( (part + seed).toFixed(0) );
-            variations.push(actualVariation)
-            newSpread.push(part)
+    do{ 
+      let dist = Math.min( Math.max(seed, -Math.abs(round)), Math.abs(round));
+      newSpread = newSpread.map((item, index)=>{
+        if(absSeed == 0){
+          return item 
+        }   
+        if( dist !== 0 ){
+          if(item + dist > 0){
+            absSeed -= Math.abs( dist );            
+            return item + dist;
+          }else{
+            return 0;
+          }
         }
-
-        // average out the variation so it's close to the whole number //
-        actualVariation = variations.reduce(function(a, b){
-            return a + b 
-        })
-        seed = ((adjVariation - actualVariation)-adjVariation) / this._maxTries;
-        newSpread = variations.map(function(variation, index){
-            return Math.abs( Number( (newSpread[index] + (variation + seed)).toFixed(0) ) )
-        })
-
-        //resolve the variation to whole numbers//
-        seed = whole - newSpread.reduce(function(a, b){ return a+b});
-        newSpread = newSpread.map(function(num){
-            return num + (seed / this._maxTries);
-        }, this);
-        return newSpread
+      })
+    }while( absSeed > 0 )
+    return newSpread
+  }    
+  createUniformList( spread ){
+    let part = spread.get('total') / this.attempts,
+        newSpread = List();
+    for( let i = 0; i< this.attempts; i++ ){
+      newSpread = newSpread.push(part)
     }
-    createRoundedSpread( spread ){
-        let maxVariation = spread.variation,
-            round = spread.round,         
-            excess = spread.total % round,
-            whole = spread.total - excess,
-            part = this.roundNumTo(spread.total / this._maxTries, round),
-            newSpread = [],
-            seed = 0,
-            actualVariation = 0,
-            adjVariation = (whole * (maxVariation /100) ), count;
-
-        // generate inital (even) spread and initial variations/
-        for( let i = 0; i<this._maxTries; i++ ){
-            let seed = this.roundNumTo( Number( 
-                (Math.random() * (adjVariation + adjVariation)) - adjVariation 
-                .toFixed(0)), round);
-            let variation = Number( (part + seed).toFixed(0) );
-            actualVariation += variation;
-            newSpread.push(variation)
-        }
-
-        seed = whole - actualVariation + excess;
-        let absSeed = Math.abs(seed);
-   
-        do{         
-            for(let i = 0; i< newSpread.length; i++ ){
-                if(absSeed == 0){
-                    break;
-                }   
-                let dist = Math.min( Math.max(seed, -Math.abs(round)), Math.abs(round))
-                if( dist !== 0 ){
-                    if(newSpread[i] + dist > 0){
-                        newSpread[i] = newSpread[i] + dist;
-                    }else{
-                        newSpread[i] = 0;
-                    }
-                }
-                absSeed -= Math.abs( dist );
-            }
-        }while( absSeed > 0 )
-        return newSpread
-    }    
-    createUniformSpread( num ){
-        let part = num / this._maxTries,
-            newSpread = [];
-        for( let i = 0; i< this._maxTries; i++ ){
-            newSpread.push(part)
-        }
-        return newSpread
+    return newSpread
+  }
+  roundNumTo(num, to) {
+    var resto = num%to;
+    if (resto <= (to/2)) { 
+        return num-resto;
+    } else {
+        return num+to-resto;
     }
-    createSpreadExNihlo( ){
-        let part = 100 / this._maxTries,
-            newSpread = [],
-            difference = 0;
-        for( let i = 0; i< this._maxTries; i++ ){
-            newSpread.push( Number( part.toFixed(0) ) )
-        }
-        difference = 100 - newSpread.reduce(function(a,b){return a+b})
-        for(let i = 0; i< difference; i++ ){
-            newSpread[i] = newSpread[i] - 1;
-        }
-        return newSpread
+  }     
+  createSpreadExNihlo( ){
+    let part = 100 / this.attempts,
+        newSpread = [],
+        difference = 0;
+    for( let i = 0; i< this.attempts; i++ ){
+        newSpread.push( Number( part.toFixed(0) ) )
     }
-    roundNumTo(num, to) {
-        var resto = num%to;
-        if (resto <= (to/2)) { 
-            return num-resto;
-        } else {
-            return num+to-resto;
-        }
-    }    
+    difference = 100 - newSpread.reduce(function(a,b){return a+b})
+    for(let i = 0; i< difference; i++ ){
+        newSpread[i] = newSpread[i] - 1;
+    }
+    return newSpread
+  } 
 }
-module.exports.randomSet = randomSet
-module.exports.ratio = variedRatio
+
+export const set = randomSet
+export const ratio = variedRatio

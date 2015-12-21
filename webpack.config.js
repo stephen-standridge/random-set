@@ -3,16 +3,20 @@ module.exports = {
     './source/random-set.js'
   ],
   module: {
-	  loaders: [
-	    {
-	      test: /\.js?$/,
-	      exclude: /node_modules/,
-	      loader: 'babel' // 'babel-loader' is also a legal name to reference
-	    }
-	  ]
+    loaders: [
+      {
+        test: /\.js?$/,
+        exclude: /node_modules/,
+        loader: 'babel' // 'babel-loader' is also a legal name to reference
+      }
+    ]
   },  
   output: {
     path: __dirname + '/dist',
-    filename: 'bundle.js'
+    filename: 'bundle.js',
+    // export itself to a global var
+    libraryTarget: "commonjs2",
+    // name of the global var: "Foo"
+    library: "Random"    
   }
 };
